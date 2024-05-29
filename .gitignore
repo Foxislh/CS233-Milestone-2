@@ -1,2 +1,5 @@
 dataset/
 src/__pycache__/
+prediction.npy
+MLP with PCA.png
+MLP.png

@@ -109,6 +109,7 @@ def main(args):
 
     # Predict on unseen data
     preds = method_obj.predict(xtest)
+    np.save("predictions", preds)
     s2 = time.time()
 
     ## Report results: performance on train and valid/test sets
@@ -128,9 +129,9 @@ def main(args):
     ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
     if args.nn_type == "mlp":
         if args.use_pca:
-            print("MLP takes", s2-s1, "seconds.")
-        else:
             print("MLP with PCA takes", s2-s1, "seconds.")
+        else:
+            print("MLP takes", s2-s1, "seconds.")
     elif args.nn_type == "cnn":
         print("CNN takes", s2-s1, "seconds.")
     elif args.nn_type == "transformer":
