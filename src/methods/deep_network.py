@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import TensorDataset, DataLoader
+from tqdm import tqdm
 
 ## MS2
 
@@ -31,10 +32,10 @@ class MLP(nn.Module):
         ###
         ##
 
-        self.fc1 = nn.Linear(in_features=input_size, out_features=64, bias=True)
-        self.fc2 = nn.Linear(in_features=64, out_features=128, bias=True)
-        self.fc3 = nn.Linear(in_features=128, out_features=256, bias=True)
-        self.fc4 = nn.Linear(in_features=256, out_features=n_classes, bias=True)
+        self.fc1 = nn.Linear(in_features=input_size, out_features=256, bias=True)
+        self.fc2 = nn.Linear(in_features=256, out_features=128, bias=True)
+        self.fc3 = nn.Linear(in_features=128, out_features=64, bias=True)
+        self.fc4 = nn.Linear(in_features=64, out_features=n_classes, bias=True)
 
     def forward(self, x):
         """
@@ -193,6 +194,9 @@ class Trainer(object):
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(model.parameters(), lr=lr) ### WRITE YOUR CODE HERE
 
+        self.train_losses = []
+        self.train_accuracies = []
+
     def train_all(self, dataloader):
         """
         Fully train the model over the epochs. 
@@ -204,8 +208,9 @@ class Trainer(object):
             dataloader (DataLoader): dataloader for training data
         """
         for ep in range(self.epochs):
-            self.train_one_epoch(dataloader, ep)
-
+            train_loss, train_accuracy = self.train_one_epoch(dataloader, ep)
+            self.train_losses.append(train_loss)
+            self.train_accuracies.append(train_accuracy)
             ### WRITE YOUR CODE HERE if you want to do add something else at each epoch
 
     def train_one_epoch(self, dataloader, ep):
@@ -224,7 +229,10 @@ class Trainer(object):
         ###
         ##
         self.model.train()
-        for batch, (x, y) in enumerate(dataloader):
+        total_loss = 0
+        correct = 0
+        progress_bar = tqdm(dataloader, desc=f'Epoch {ep+1}/{self.epochs}')
+        for batch, (x, y) in enumerate(progress_bar):
             # Compute prediction and loss
             pred = self.model(x)
             loss = self.criterion(pred, y)
@@ -233,6 +241,16 @@ class Trainer(object):
             loss.backward()
             self.optimizer.step()
             self.optimizer.zero_grad()
+
+            # Update progress bar
+            progress_bar.set_postfix(loss=loss.item())
+
+            total_loss += loss.item()
+            correct += (pred.argmax(dim=1) == y).sum().item()
+
+        avg_loss = total_loss / len(dataloader)
+        accuracy = correct / len(dataloader.dataset)
+        return avg_loss, accuracy
 
     def predict_torch(self, dataloader):
         """

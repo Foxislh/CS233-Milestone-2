@@ -9,6 +9,8 @@ from src.methods.dummy_methods import DummyClassifier
 from src.methods.deep_network import MLP, CNN, Trainer, MyViT
 from src.utils import normalize_fn, append_bias_term, accuracy_fn, macrof1_fn, get_n_classes
 
+import matplotlib.pyplot as plt
+import time
 
 def main(args):
     """
@@ -75,6 +77,7 @@ def main(args):
 
     # Prepare the model (and data) for Pytorch
     # Note: you might need to reshape the data depending on the network you use!
+    s1 = time.time()
     n_classes = get_n_classes(ytrain)
     if args.nn_type == "mlp":
         input_size = xtrain.shape[1]
@@ -105,6 +108,7 @@ def main(args):
 
     # Predict on unseen data
     preds = method_obj.predict(xtest)
+    s2 = time.time()
 
     ## Report results: performance on train and valid/test sets
     acc = accuracy_fn(preds_train, ytrain)
@@ -121,7 +125,36 @@ def main(args):
         pass
 
     ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
+    if args.nn_type == "mlp":
+        if args.use_pca:
+            print("MLP takes", s2-s1, "seconds.")
+        else:
+            print("MLP with PCA takes", s2-s1, "seconds.")
+    elif args.nn_type == "cnn":
+        print("CNN takes", s2-s1, "seconds.")
+    elif args.nn_type == "transformer":
+        print("Transformer takes", s2-s1, "seconds.")
+    else:
+        pass
 
+    epochs_range = range(1, args.max_iters + 1)
+    plt.figure(figsize=(12, 5))
+
+    plt.subplot(1, 2, 1)
+    plt.plot(epochs_range, method_obj.train_losses, label='Training Loss')
+    plt.xlabel('Epochs')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.title('Loss over Epochs')
+
+    plt.subplot(1, 2, 2)
+    plt.plot(epochs_range, method_obj.train_accuracies, label='Training Accuracy')
+    plt.xlabel('Epochs')
+    plt.ylabel('Accuracy')
+    plt.legend()
+    plt.title('Accuracy over Epochs')
+
+    plt.show()
 
 if __name__ == '__main__':
     # Definition of the arguments that can be given through the command line (terminal).
