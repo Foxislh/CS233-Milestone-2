@@ -85,29 +85,20 @@ class CNN(nn.Module):
         ###
         ##
         self.conv_block1 = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=3, padding=1),
-            nn.ReLU(inplace = True),
-            nn.Conv2d(32, 32, kernel_size=3, padding=1), 
-            nn.ReLU(inplace = True),
-            nn.MaxPool2d(kernel_size=2, stride=2)
-        )
-        self.conv_block2 = nn.Sequential(
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.Conv2d(1, 64, kernel_size=3, padding=1),
             nn.ReLU(inplace = True),
             nn.Conv2d(64, 64, kernel_size=3, padding=1), 
             nn.ReLU(inplace = True),
             nn.MaxPool2d(kernel_size=2, stride=2)
         )
-        self.conv_block3 = nn.Sequential(
+        self.conv_block2 = nn.Sequential(
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
-            nn.ReLU(inplace = True),
-            nn.Conv2d(128, 128, kernel_size=3, padding=1), 
             nn.ReLU(inplace = True),
             nn.Conv2d(128, 128, kernel_size=3, padding=1), 
             nn.ReLU(inplace = True),
             nn.MaxPool2d(kernel_size=2, stride=2)
         )
-        self.fc1 = nn.Linear(64 * 7 * 7, 512)
+        self.fc1 = nn.Linear(128 * 7 * 7, 512)
         self.fc2 = nn.Linear(512, n_classes)
 
     def forward(self, x):
@@ -176,7 +167,7 @@ class Trainer(object):
     It will also serve as an interface between numpy and pytorch.
     """
 
-    def __init__(self, model, lr, epochs, batch_size):
+    def __init__(self, model, lr, epochs, batch_size, save_path = "model_path.pth"):
         """
         Initialize the trainer object for a given model.
 
@@ -190,12 +181,19 @@ class Trainer(object):
         self.epochs = epochs
         self.model = model
         self.batch_size = batch_size
+        self.save_path = save_path
 
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(model.parameters(), lr=lr) ### WRITE YOUR CODE HERE
 
         self.train_losses = []
         self.train_accuracies = []
+
+    def load_model(self):
+        """
+        Load the model parameters from the specified file path.
+        """
+        self.model.load_state_dict(torch.load(self.save_path))
 
     def train_all(self, dataloader):
         """
@@ -211,6 +209,9 @@ class Trainer(object):
             train_loss, train_accuracy = self.train_one_epoch(dataloader, ep)
             self.train_losses.append(train_loss)
             self.train_accuracies.append(train_accuracy)
+            # save the model per 5 epochs
+            if ep % 5 == 0:
+                torch.save(self.model.state_dict(), self.save_path)
             ### WRITE YOUR CODE HERE if you want to do add something else at each epoch
 
     def train_one_epoch(self, dataloader, ep):

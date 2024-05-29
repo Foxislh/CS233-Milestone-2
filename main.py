@@ -86,7 +86,6 @@ def main(args):
         xtrain = xtrain.reshape(-1, 28, 28)
         xtest = xtest.reshape(-1, 28, 28)
         input_size = xtrain.shape
-        print(input_size)
         model = CNN(input_size, n_classes)
     elif args.nn_type == "transformer":
         xtrain = xtrain.reshape(-1, 28, 28)
@@ -100,6 +99,8 @@ def main(args):
 
     # Trainer object
     method_obj = Trainer(model, lr=args.lr, epochs=args.max_iters, batch_size=args.nn_batch_size)
+    if args.load_path:
+        Trainer.load_model()
 
     ## 4. Train and evaluate the method
 
@@ -177,7 +178,8 @@ if __name__ == '__main__':
     parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")
     parser.add_argument('--test', action="store_true",
                         help="train on whole training data and evaluate on the test data, otherwise use a validation set")
-
+    parser.add_argument('--load_path', action="store_true",
+                        help="Load the model parameters from the specified file path.")
 
     # "args" will keep in memory the arguments and their values,
     # which can be accessed as "args.data", for example.
