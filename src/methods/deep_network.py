@@ -84,30 +84,29 @@ class CNN(nn.Module):
         ###
         ##
         self.conv_block1 = nn.Sequential(
-            nn.Conv1d(1, 32, kernel_size=3, padding=1),
+            nn.Conv2d(1, 32, kernel_size=3, padding=1),
             nn.ReLU(inplace = True),
-            nn.Conv1d(32, 32, kernel_size=3, padding=1), 
+            nn.Conv2d(32, 32, kernel_size=3, padding=1), 
             nn.ReLU(inplace = True),
-            nn.MaxPool1d(kernel_size=2, stride=2)
+            nn.MaxPool2d(kernel_size=2, stride=2)
         )
         self.conv_block2 = nn.Sequential(
-            nn.Conv1d(32, 64, kernel_size=3, padding=1),
+            nn.Conv2d(32, 64, kernel_size=3, padding=1),
             nn.ReLU(inplace = True),
-            nn.Conv1d(64, 64, kernel_size=3, padding=1), 
+            nn.Conv2d(64, 64, kernel_size=3, padding=1), 
             nn.ReLU(inplace = True),
-            nn.MaxPool1d(kernel_size=2, stride=2)
+            nn.MaxPool2d(kernel_size=2, stride=2)
         )
         self.conv_block3 = nn.Sequential(
-            nn.Conv1d(64, 128, kernel_size=3, padding=1),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.ReLU(inplace = True),
-            nn.Conv1d(128, 128, kernel_size=3, padding=1), 
+            nn.Conv2d(128, 128, kernel_size=3, padding=1), 
             nn.ReLU(inplace = True),
-            nn.Conv1d(128, 128, kernel_size=3, padding=1), 
+            nn.Conv2d(128, 128, kernel_size=3, padding=1), 
             nn.ReLU(inplace = True),
-            nn.MaxPool1d(kernel_size=2, stride=2)
+            nn.MaxPool2d(kernel_size=2, stride=2)
         )
-        reduced_size = input_channels // 4 
-        self.fc1 = nn.Linear(64 * reduced_size, 512)
+        self.fc1 = nn.Linear(64 * 7 * 7, 512)
         self.fc2 = nn.Linear(512, n_classes)
 
     def forward(self, x):

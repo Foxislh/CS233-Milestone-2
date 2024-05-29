@@ -60,14 +60,6 @@ def main(args):
     xtrain = normalize_fn(xtrain, mean_xtrain, std_xtrain)
     xtest = normalize_fn(xtest, mean_xtest, std_xtest)
 
-    # append bias term
-    xtrain = append_bias_term(xtrain)
-    xtest = append_bias_term(xtest) 
-
-    # flatten input
-    xtrain = xtrain.reshape(xtrain.shape[0], -1)  
-    xtest = xtest.reshape(xtest.shape[0], -1)  
-
     # Dimensionality reduction (MS2)
     if args.use_pca:
         print("Using PCA")
@@ -83,13 +75,20 @@ def main(args):
 
     # Prepare the model (and data) for Pytorch
     # Note: you might need to reshape the data depending on the network you use!
-    input_size = xtrain.shape[1]
     n_classes = get_n_classes(ytrain)
     if args.nn_type == "mlp":
-        model = MLP(input_size, n_classes) ### WRITE YOUR CODE HERE
+        input_size = xtrain.shape[1]
+        model = MLP(input_size, n_classes) 
     elif args.nn_type == "cnn":
+        xtrain = xtrain.reshape(-1, 28, 28)
+        xtest = xtest.reshape(-1, 28, 28)
+        input_size = xtrain.shape
+        print(input_size)
         model = CNN(input_size, n_classes)
     elif args.nn_type == "transformer":
+        xtrain = xtrain.reshape(-1, 28, 28)
+        xtest = xtest.reshape(-1, 28, 28)
+        input_size = xtrain.shape
         model = MyViT(chw = input_size, out_d = n_classes)
     else:
         pass
