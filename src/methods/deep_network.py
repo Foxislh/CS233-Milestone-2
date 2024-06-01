@@ -203,7 +203,7 @@ class MyViT(nn.Module):
     A Transformer-based neural network
     """
 
-    def __init__(self, chw , n_patches = 7, n_blocks = 6, hidden_d = 64, n_heads = 8, out_d= 10):
+    def __init__(self, chw , n_patches = 7, n_blocks = 6, hidden_d = 64, n_heads = 16, out_d= 10):
         """
         Initialize the network.
         
