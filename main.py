@@ -1,10 +1,12 @@
 import argparse
 
 import numpy as np
+import torch
+import os
 from torchinfo import summary
 
 from src.data import load_data
-from src.methods.pca import PCA
+from src.methods.pca import PCA  
 from src.methods.dummy_methods import DummyClassifier
 from src.methods.deep_network import MLP, CNN, Trainer, MyViT
 from src.utils import normalize_fn, append_bias_term, accuracy_fn, macrof1_fn, get_n_classes
@@ -79,6 +81,7 @@ def main(args):
     # Note: you might need to reshape the data depending on the network you use!
     s1 = time.time()
     n_classes = get_n_classes(ytrain)
+    print("xtrain.shape:", xtrain.shape)
     if args.nn_type == "mlp":
         input_size = xtrain.shape[1]
         model = MLP(input_size, n_classes) 
@@ -86,12 +89,14 @@ def main(args):
         xtrain = xtrain.reshape(-1, 28, 28)
         xtest = xtest.reshape(-1, 28, 28)
         input_size = xtrain.shape
+        print(input_size)
         model = CNN(input_size, n_classes)
     elif args.nn_type == "transformer":
         xtrain = xtrain.reshape(-1, 28, 28)
         xtest = xtest.reshape(-1, 28, 28)
-        input_size = xtrain.shape
-        model = MyViT(chw = input_size, out_d = n_classes)
+        input_size = xtrain.shape        
+        print("输入:" , input_size)
+        model = MyViT(chw = [1,28,28], out_d = n_classes)
     else:
         pass
 
@@ -99,8 +104,6 @@ def main(args):
 
     # Trainer object
     method_obj = Trainer(model, lr=args.lr, epochs=args.max_iters, batch_size=args.nn_batch_size)
-    if args.load_path:
-        Trainer.load_model()
 
     ## 4. Train and evaluate the method
 
@@ -109,7 +112,6 @@ def main(args):
 
     # Predict on unseen data
     preds = method_obj.predict(xtest)
-    np.save("predictions", preds)
     s2 = time.time()
 
     ## Report results: performance on train and valid/test sets
@@ -129,9 +131,9 @@ def main(args):
     ### WRITE YOUR CODE HERE if you want to add other outputs, visualization, etc.
     if args.nn_type == "mlp":
         if args.use_pca:
-            print("MLP with PCA takes", s2-s1, "seconds.")
-        else:
             print("MLP takes", s2-s1, "seconds.")
+        else:
+            print("MLP with PCA takes", s2-s1, "seconds.")
     elif args.nn_type == "cnn":
         print("CNN takes", s2-s1, "seconds.")
     elif args.nn_type == "transformer":
@@ -149,7 +151,7 @@ def main(args):
     plt.legend()
     plt.title('Loss over Epochs')
 
-    plt.subplot(1, 2, 2)
+    plt.subplot(1, 2, 2) 
     plt.plot(epochs_range, method_obj.train_accuracies, label='Training Accuracy')
     plt.xlabel('Epochs')
     plt.ylabel('Accuracy')
@@ -157,6 +159,20 @@ def main(args):
     plt.title('Accuracy over Epochs')
 
     plt.show()
+
+
+    model_save_path = 'E:\CS-233 milestone\CS233-Milestone-2\CS233-Milestone-2\src\models\model.pth' 
+    model_directory = os.path.dirname(model_save_path)
+    if not os.path.exists(model_directory):
+        os.makedirs(model_directory)
+        print(f"Created directory {model_directory}")
+    torch.save(model.state_dict(), model_save_path)
+    print(f"Model parameters saved to {model_save_path}")
+    
+    if args.load_model:
+            model_load_path = 'E:\CS-233 milestone\CS233-Milestone-2\CS233-Milestone-2\src\models\model.pth' 
+            model.load_state_dict(torch.load(model_load_path))
+            print(f"Loaded model parameters from {model_load_path}")
 
 if __name__ == '__main__':
     # Definition of the arguments that can be given through the command line (terminal).
@@ -176,11 +192,11 @@ if __name__ == '__main__':
 
 
     parser.add_argument('--lr', type=float, default=1e-5, help="learning rate for methods with learning rate")
-    parser.add_argument('--max_iters', type=int, default=100, help="max iters for methods which are iterative")
+    parser.add_argument('--max_iters', type=int, default=5, help="max iters for methods which are iterative")
     parser.add_argument('--test', action="store_true",
                         help="train on whole training data and evaluate on the test data, otherwise use a validation set")
-    parser.add_argument('--load_path', action="store_true",
-                        help="Load the model parameters from the specified file path.")
+    parser.add_argument('--load_model', action='store_true', help="Set this flag to load pretrained model")
+
 
     # "args" will keep in memory the arguments and their values,
     # which can be accessed as "args.data", for example.
