@@ -348,6 +348,14 @@ class Trainer(object):
         self.train_losses = []
         self.train_accuracies = []
 
+    def load_model(self, save_path):
+        """
+        Load the model parameters from the specified file path.
+        """
+        self.save_path = save_path
+        self.model.load_state_dict(torch.load(self.save_path))
+        print(f"Loaded model parameters from {self.save_path}")
+
     def train_all(self, dataloader):
         """
         Fully train the model over the epochs. 
