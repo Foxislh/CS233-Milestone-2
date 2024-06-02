@@ -23,6 +23,9 @@ def main(args):
         args (Namespace): arguments that were parsed from the command line (see at the end 
                           of this file). Their value can be accessed as "args.argument".
     """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    print(f"Using device: {device}")
+
     ## 1. First, we load our data and flatten the images into vectors
     xtrain, xtest, ytrain = load_data(args.data)
     xtrain = xtrain.reshape(xtrain.shape[0], -1)
@@ -64,6 +67,11 @@ def main(args):
     xtrain = normalize_fn(xtrain, mean_xtrain, std_xtrain)
     xtest = normalize_fn(xtest, mean_xtest, std_xtest)
 
+    # 转换数据为张量并移动到设备
+    xtrain = torch.from_numpy(xtrain).float().to(device)
+    ytrain = torch.from_numpy(ytrain).long().to(device)
+    xtest = torch.from_numpy(xtest).float().to(device)
+    
     # Dimensionality reduction (MS2)
     if args.use_pca:
         print("Using PCA")
@@ -96,16 +104,16 @@ def main(args):
         xtest = xtest.reshape(-1, 28, 28)
         input_size = xtrain.shape        
         print("输入:" , input_size)
-        model = MyViT(chw = [1,28,28], out_d = n_classes)
+        model = MyViT(chw = [1,28,28], out_d = n_classes).to(device)
     else:
         pass
 
     summary(model)
 
     # Trainer object
-    method_obj = Trainer(model, lr=args.lr, epochs=args.max_iters, batch_size=args.nn_batch_size)
+    method_obj = Trainer(model, lr=args.lr, epochs=args.max_iters, batch_size=args.nn_batch_size, device=device)
     if args.load_path:
-        method_obj.load_model("E:\CS-233 milestone\CS233-Milestone-2\CS233-Milestone-2\src\models\model.pth")
+        method_obj.load_model("/data/coding/CS233/CS233-Milestone-2/src/models/model.pth")
     ## 4. Train and evaluate the method
 
     # Fit (:=train) the method on the training data
@@ -162,7 +170,7 @@ def main(args):
     plt.show()
 
 
-    model_save_path = "E:\CS-233 milestone\CS233-Milestone-2\CS233-Milestone-2\src\models\model.pth" 
+    model_save_path = "/data/coding/CS233/CS233-Milestone-2/src/models/model.pth" 
     model_directory = os.path.dirname(model_save_path)
     if not os.path.exists(model_directory):
         os.makedirs(model_directory)

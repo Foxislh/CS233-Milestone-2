@@ -135,7 +135,7 @@ class CNN(nn.Module):
 
 
 class MyMSA(nn.Module):
-    def __init__(self, d, n_heads=2):
+    def __init__(self, d, n_heads=2, device='cuda'):
         super(MyMSA, self).__init__()
         self.d = d
         self.n_heads = n_heads
@@ -149,6 +149,7 @@ class MyMSA(nn.Module):
         self.v_mappings = nn.ModuleList([nn.Linear(d_head, d_head) for _ in range(self.n_heads)])
 
         self.softmax = nn.Softmax(dim=-1)
+        self.device = device
 
     def forward(self, sequences):
         result = []
@@ -178,19 +179,19 @@ class MyMSA(nn.Module):
         return torch.cat([torch.unsqueeze(r, dim=0) for r in result])
     
 class MyViTBlock(nn.Module):
-    def __init__(self, hidden_d, n_heads, mlp_ratio=4):
+    def __init__(self, hidden_d, n_heads, mlp_ratio=4, device='cuda'):
         super(MyViTBlock, self).__init__()
         self.hidden_d = hidden_d
         self.n_heads = n_heads
 
-        self.norm1 = nn.LayerNorm(hidden_d)
-        self.mhsa = MyMSA(hidden_d, n_heads) 
-        self.norm2 = nn.LayerNorm(hidden_d)
+        self.norm1 = nn.LayerNorm(hidden_d).to(device)
+        self.mhsa = MyMSA(hidden_d, n_heads).to(device)
+        self.norm2 = nn.LayerNorm(hidden_d).to(device)
         self.mlp = nn.Sequential( 
             nn.Linear(hidden_d, mlp_ratio * hidden_d),
             nn.GELU(),
             nn.Linear(mlp_ratio * hidden_d, hidden_d)
-        )
+        ).to(device)
 
     def forward(self, x):
         # Write code for MHSA + residual connection.
@@ -203,7 +204,7 @@ class MyViT(nn.Module):
     A Transformer-based neural network
     """
 
-    def __init__(self, chw , n_patches = 7, n_blocks = 6, hidden_d = 64, n_heads = 16, out_d= 10):
+    def __init__(self, chw , n_patches = 7, n_blocks = 6, hidden_d = 64, n_heads = 16, out_d= 10, device='cuda'):
         """
         Initialize the network.
         
@@ -216,7 +217,8 @@ class MyViT(nn.Module):
         self.n_heads = n_heads
         self.out_d = out_d
         self.patch_size = (chw[1] / n_patches, chw[2] / n_patches)
-    
+        self.device = device
+
         assert chw[1] % self.patch_size[0] == 0 and chw[2] % self.patch_size[0] == 0, "Image dimensions must be divisible by the patch size."
         self.input_d = int(chw[0] * self.patch_size[0] * self.patch_size[1])
         self.linear_mapper = nn.Linear(self.input_d, self.hidden_d)
@@ -225,7 +227,7 @@ class MyViT(nn.Module):
         n_tokens = self.n_patches * self.n_patches + 1
         self.positional_embeddings = nn.Parameter(torch.rand(1, n_tokens, self.hidden_d))
 
-        self.blocks_1 = nn.ModuleList([MyViTBlock(hidden_d, n_heads) for _ in range(n_blocks)])
+        self.blocks_1 = nn.ModuleList([MyViTBlock(hidden_d, n_heads, device=self.device) for _ in range(n_blocks)])
         self.mlp_head = nn.Sequential(
             nn.Linear(self.hidden_d, out_d),
             nn.Softmax(dim=-1)
@@ -247,7 +249,7 @@ class MyViT(nn.Module):
                 patch = images[:, :, i * patch_size:(i + 1) * patch_size, j * patch_size:(j + 1) * patch_size]
                 patches[:, i * n_patches + j] = patch.reshape(n, -1)
         
-        return patches
+        return patches.to(self.device)
         # patch_dim = chw[1] * self.patch_size[0] * self.patch_size[1]
         
         
@@ -286,11 +288,12 @@ class MyViT(nn.Module):
                 Reminder: logits are value pre-softmax.
         """
         # n, chw = images.shape
+        images = images.to(self.device)
         images = images.unsqueeze(1) # add the channel
         n = images.shape[0] 
 
         # Divide images into patches.
-        patches = self.patchify(images, self.n_patches)
+        patches = self.patchify(images, self.n_patches).to(self.device)
         print("Shape of patches:", patches.shape) 
         
         # Map the vector corresponding to each patch to the hidden size dimension.
@@ -327,7 +330,7 @@ class Trainer(object):
     It will also serve as an interface between numpy and pytorch.
     """
 
-    def __init__(self, model, lr, epochs, batch_size):
+    def __init__(self, model, lr, epochs, batch_size, device='cuda'):
         """
         Initialize the trainer object for a given model.
 
@@ -339,8 +342,9 @@ class Trainer(object):
         """
         self.lr = lr
         self.epochs = epochs
-        self.model = model
         self.batch_size = batch_size
+        self.device = device        
+        self.model = model.to(self.device)
 
         self.criterion = nn.CrossEntropyLoss()
         self.optimizer = torch.optim.SGD(model.parameters(), lr=lr) ### WRITE YOUR CODE HERE
@@ -392,6 +396,9 @@ class Trainer(object):
         correct = 0
         progress_bar = tqdm(dataloader, desc=f'Epoch {ep+1}/{self.epochs}')
         for batch, (x, y) in enumerate(progress_bar):
+
+            x, y = x.to(self.device), y.to(self.device)
+
             # Compute prediction and loss
             pred = self.model(x)
             loss = self.criterion(pred, y)
@@ -437,6 +444,7 @@ class Trainer(object):
         self.model.eval()
         with torch.no_grad():
             for x in dataloader:
+                x = x[0].to(self.device)
                 _, label = torch.max(self.model(x[0]), 1)
                 pred.extend(label.tolist())
         pred_labels = torch.tensor(pred)
@@ -456,9 +464,18 @@ class Trainer(object):
         """
 
         # First, prepare data for pytorch
-        train_dataset = TensorDataset(torch.from_numpy(training_data).float(), 
-                                      torch.from_numpy(training_labels).long())
+        if not isinstance(training_data, torch.Tensor):
+            training_data = torch.from_numpy(training_data).float()
+        if not isinstance(training_labels, torch.Tensor):
+            training_labels = torch.from_numpy(training_labels).long()
+
+        training_data, training_labels = training_data.to(self.device), training_labels.to(self.device)
+
+        train_dataset = TensorDataset(training_data, training_labels)
         train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
+        # train_dataset = TensorDataset(torch.from_numpy(training_data).float(), 
+        #                               torch.from_numpy(training_labels).long())
+        # train_dataloader = DataLoader(train_dataset, batch_size=self.batch_size, shuffle=True)
         
         self.train_all(train_dataloader)
 

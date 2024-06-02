@@ -1,5 +1,5 @@
 import numpy as np 
-
+import torch
 
 # Generaly utilies
 ##################
@@ -66,7 +66,7 @@ def get_n_classes(labels):
     
     This is approximated by taking the maximum label + 1 (as we count from 0).
     """
-    return int(np.max(labels) + 1)
+    return int(torch.max(labels).item() + 1)
 
 
 # Metrics
