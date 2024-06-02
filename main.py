@@ -104,7 +104,8 @@ def main(args):
 
     # Trainer object
     method_obj = Trainer(model, lr=args.lr, epochs=args.max_iters, batch_size=args.nn_batch_size)
-
+    if args.load_path:
+        method_obj.load_model("E:\CS-233 milestone\CS233-Milestone-2\CS233-Milestone-2\src\models\model.pth")
     ## 4. Train and evaluate the method
 
     # Fit (:=train) the method on the training data
@@ -161,18 +162,14 @@ def main(args):
     plt.show()
 
 
-    model_save_path = 'E:\CS-233 milestone\CS233-Milestone-2\CS233-Milestone-2\src\models\model.pth' 
+    model_save_path = "E:\CS-233 milestone\CS233-Milestone-2\CS233-Milestone-2\src\models\model.pth" 
     model_directory = os.path.dirname(model_save_path)
     if not os.path.exists(model_directory):
         os.makedirs(model_directory)
         print(f"Created directory {model_directory}")
     torch.save(model.state_dict(), model_save_path)
     print(f"Model parameters saved to {model_save_path}")
-    
-    if args.load_model:
-            model_load_path = 'E:\CS-233 milestone\CS233-Milestone-2\CS233-Milestone-2\src\models\model.pth' 
-            model.load_state_dict(torch.load(model_load_path))
-            print(f"Loaded model parameters from {model_load_path}")
+
 
 if __name__ == '__main__':
     # Definition of the arguments that can be given through the command line (terminal).
@@ -195,7 +192,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_iters', type=int, default=5, help="max iters for methods which are iterative")
     parser.add_argument('--test', action="store_true",
                         help="train on whole training data and evaluate on the test data, otherwise use a validation set")
-    parser.add_argument('--load_model', action='store_true', help="Set this flag to load pretrained model")
+    parser.add_argument('--load_path', action='store_true', help="Load the model parameters from the specified file path.")
 
 
     # "args" will keep in memory the arguments and their values,
